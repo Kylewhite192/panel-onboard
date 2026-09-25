@@ -22,9 +22,11 @@ ensure_gum() {
 
   log "Installing gum for the install questions."
   export DEBIAN_FRONTEND=noninteractive
+  # apt writes the package list to stdout. This function runs inside a
+  # captured prompt, so that list must stay on stderr.
   if ! command -v gpg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-    apt-get update
-    apt-get install -y ca-certificates curl gnupg
+    apt-get update >&2
+    apt-get install -y ca-certificates curl gnupg >&2
   fi
   install -d -m 0755 /etc/apt/keyrings
   keytmp="$(mktemp)"
@@ -32,8 +34,8 @@ ensure_gum() {
   install -m 0644 "${keytmp}" /etc/apt/keyrings/charm.gpg
   rm -f "${keytmp}"
   printf 'deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *\n' >/etc/apt/sources.list.d/charm.list
-  apt-get update
-  apt-get install -y gum
+  apt-get update >&2
+  apt-get install -y gum >&2
   if ! command -v gum >/dev/null 2>&1; then
     die "gum was not installed."
   fi

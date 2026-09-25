@@ -17,8 +17,9 @@ PANEL_DATABASE="${PANEL_DATABASE:-sqlite}"
 # 1 installs Redis from the advanced guide. The web installer still receives the Redis settings.
 PANEL_REDIS="${PANEL_REDIS:-0}"
 
+# Stderr, because question functions print the answer on stdout and callers capture it.
 log() {
-  printf '==> %s\n' "$*"
+  printf '==> %s\n' "$*" >&2
 }
 
 die() {
