@@ -18,6 +18,11 @@
 set -euo pipefail
 source "$(dirname "$0")/scripts/lib.sh"
 require_root
+# Before the questions, so a WSL distro without systemd stops here instead of
+# halfway through the package install.
+if [[ "${INSTALL_DRY_RUN:-0}" != "1" ]]; then
+  bash "${ROOT_DIR}/scripts/check-os.sh"
+fi
 prompt_install_options
 
 # bash, not a direct exec, so the stage scripts work when a zip stores them

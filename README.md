@@ -17,6 +17,8 @@ sudo bash /tmp/panel-onboard-main/install.sh
 
 That downloads every script, then starts the installer. `install.sh` reads `scripts/` and `lib/` beside it, so curling `install.sh` on its own has nothing to run.
 
+The installer needs systemd. An imported WSL distro does not start it until `/etc/wsl.conf` says so. The installer writes `systemd=true` there and stops. Close the session, and from Windows run `wsl --terminate <distro-name>`, then start the distro and run the installer again.
+
 From a checkout of this repository:
 
 ```sh
