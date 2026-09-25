@@ -26,3 +26,8 @@ chmod o+r /etc/apt/sources.list.d/caddy-stable.list
 
 apt-get update
 apt-get install -y caddy
+
+if systemctl is-active --quiet nginx; then
+  log "Stopping Nginx so Caddy can use port 80."
+  systemctl disable --now nginx
+fi

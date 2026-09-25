@@ -16,9 +16,7 @@ if [[ -z "${PANEL_DOMAIN}" ]]; then
   die "Set PANEL_DOMAIN to the hostname (or IP, for HTTP) used in the Caddyfile."
 fi
 
-if [[ "${PANEL_HTTPS}" == "1" && "${PANEL_DOMAIN}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-  die "The docs say IPs cannot be used with SSL. Use a hostname or set PANEL_HTTPS=0."
-fi
+reject_ip_with_https
 
 socket="$(php_fpm_socket)"
 caddyfile="/etc/caddy/Caddyfile"
