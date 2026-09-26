@@ -72,6 +72,8 @@ Environment variables pre-fill the suggestions: `INSTALL_MODE`, `PANEL_DOMAIN`, 
 
 `INSTALL_DRY_RUN=1 bash install.sh` prints the script order and does not ask questions or change the system. `INSTALL_MODE` selects which order is printed (`panel` when unset).
 
+A real run records each stage in `/root/pelican-installer/state.env` after that stage exits 0, and appends status lines to `/var/log/pelican-installer.log`. Both files are mode `600`. Run the installer again after a failure and choose Resume to skip the stages that already finished. The MariaDB password and `APP_KEY` are written to `/root/pelican-installer/secrets.env`, not to the log. The generated password is shown once, because the browser installer asks for it again. At the end, the installer checks the services for the mode you chose. Wings is installed and left stopped. The queue worker and scheduler are checked by `scripts/post-install.sh` after the browser installer.
+
 ## Scripts
 
 | Script | What it does |
@@ -93,6 +95,7 @@ Environment variables pre-fill the suggestions: `INSTALL_MODE`, `PANEL_DOMAIN`, 
 | `scripts/install-certbot.sh` | Optional. Certbot standalone certificate for Wings, and the renewal cron |
 | `scripts/configure-firewall.sh` | Optional. UFW rules for the selected mode, including the SSH port in use |
 | `scripts/install-panel-docker.sh` | Official `compose.yml`, or that file plus the reverse-proxy Caddyfile. Picks another `172.20`–`172.31` subnet when that range overlaps an existing network, including a wider one such as `172.16.0.0/12` |
-| `scripts/post-install.sh` | After the browser installer. Queue worker and the panel schedule cron |
+| `scripts/post-install.sh` | After the browser installer. Queue worker, the panel schedule cron, and a check that both are running |
+| `scripts/verify-install.sh` | Checks the services for the mode that was installed. Wings is left stopped |
 
 Apache is not part of this installer. The queue worker and the panel cron are in `scripts/post-install.sh`, which runs after `/installer`, not as a stage of `install.sh`. The panel Docker guide still calls the non-Docker install the one to prefer.

@@ -58,7 +58,8 @@ fi
 
 bash "$(dirname "$0")/set-permissions.sh"
 
-log "Back up APP_KEY from ${PANEL_DIR}/.env and store it off this server."
+secrets_save_app_key_file "${PANEL_DIR}/.env"
+log "Back up APP_KEY from ${PANEL_DIR}/.env and from ${INSTALLER_SECRETS}."
 if [[ -n "${PANEL_DOMAIN}" ]]; then
   log "Finish in the browser at ${scheme}://${PANEL_DOMAIN}/installer"
 else

@@ -156,12 +156,12 @@ log "Starting the panel container."
 (
   cd "${DOCKER_DIR}"
   docker compose up -d
-  key_line="$(docker compose logs panel 2>/dev/null | grep 'Generated app key:' || true)"
+  key_line="$(docker compose logs panel 2>/dev/null | grep 'Generated app key:' | tail -n 1 || true)"
   if [[ -n "${key_line}" ]]; then
-    log "${key_line}"
-    log "Back up that app key off this server."
+    secrets_save_app_key "${key_line##*Generated app key: }"
+    log "Back up that app key from ${INSTALLER_SECRETS} and store it off this server."
   else
-    log "If this is the first start, back up the app key with: docker compose logs panel | grep 'Generated app key:'"
+    log "If this is the first start, copy the app key into ${INSTALLER_SECRETS}. The container log has it; this installer log does not."
   fi
 )
 log "Finish in the browser at ${APP_URL}/installer"

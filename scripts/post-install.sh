@@ -27,6 +27,8 @@ fi
 
 dry_run_step
 
+state_init
+
 if ! command -v crontab >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
@@ -58,3 +60,4 @@ else
 fi
 
 log "Queue worker: systemctl status pelican-queue"
+bash "$(dirname "$0")/verify-install.sh" post

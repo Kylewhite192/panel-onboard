@@ -19,17 +19,52 @@ set -euo pipefail
 source "$(dirname "$0")/scripts/lib.sh"
 require_root
 # Before the questions, so a WSL distro without systemd stops here instead of
-# halfway through the package install.
+# halfway through the package install. A previous run can resume after that.
+resuming=0
 if [[ "${INSTALL_DRY_RUN:-0}" != "1" ]]; then
+  state_init
   bash "${ROOT_DIR}/scripts/check-os.sh"
+  if offer_resume; then
+    resuming=1
+    state_load_choices
+    if value="$(secrets_get PANEL_DB_PASSWORD)"; then
+      PANEL_DB_PASSWORD="${value}"
+      export PANEL_DB_PASSWORD
+    fi
+    log "Resuming ${INSTALL_MODE}. Stages already marked complete are skipped."
+    if [[ "${PANEL_DATABASE:-}" == "mariadb" ]]; then
+      log "The MariaDB password is in ${INSTALLER_SECRETS}."
+    fi
+  fi
 fi
-prompt_install_options
+if [[ "${resuming}" != "1" ]]; then
+  prompt_install_options
+  if [[ "${INSTALL_DRY_RUN:-0}" != "1" ]]; then
+    state_save_choices
+  fi
+fi
 
 # bash, not a direct exec, so the stage scripts work when a zip stores them
-# without the executable bit.
+# without the executable bit. A stage is recorded only after it exits 0.
 run_step() {
-  log "Running $1"
-  bash "${ROOT_DIR}/$1"
+  local script="$1" key status
+  key="$(basename "${script}" .sh)"
+  if [[ "${INSTALL_DRY_RUN:-0}" != "1" ]] && state_is_complete "${key}"; then
+    log "Skipping ${script}; it already completed."
+    return 0
+  fi
+  log "Running ${script}"
+  if [[ "${INSTALL_DRY_RUN:-0}" == "1" ]]; then
+    bash "${ROOT_DIR}/${script}"
+    return 0
+  fi
+  if bash "${ROOT_DIR}/${script}"; then
+    state_set "stage_${key}" complete
+  else
+    status=$?
+    state_set "stage_${key}" failed
+    die "Stage ${script} failed (exit ${status}). The log is ${INSTALLER_LOG}."
+  fi
 }
 
 run_panel() {
@@ -111,3 +146,5 @@ fi
 if [[ "${PANEL_CERTBOT}" == "1" ]]; then
   run_step scripts/install-certbot.sh
 fi
+
+bash "${ROOT_DIR}/scripts/verify-install.sh"

@@ -62,7 +62,27 @@ prompt_panel_options() {
     "mariadb|MariaDB")"
 
   if [[ "${PANEL_DATABASE}" == "mariadb" ]]; then
-    PANEL_DB_PASSWORD="$(ask_password)"
+    if [[ -n "${PANEL_DB_PASSWORD:-}" ]]; then
+      password_default="enter"
+    else
+      password_default="generate"
+    fi
+    password_choice="$(ui_menu "MariaDB password for pelican@127.0.0.1" "${password_default}" \
+      "generate|Generate a password" \
+      "enter|Enter a password")"
+    if [[ "${password_choice}" == "generate" ]]; then
+      if ! command -v openssl >/dev/null 2>&1; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update >&2
+        apt-get install -y openssl >&2
+      fi
+      PANEL_DB_PASSWORD="$(openssl rand -hex 32)"
+      printf 'MariaDB password for pelican@127.0.0.1: %s\n' "${PANEL_DB_PASSWORD}" >&2
+      printf 'Saved in %s\n' "${INSTALLER_SECRETS}" >&2
+    else
+      PANEL_DB_PASSWORD="$(ask_password)"
+    fi
+    secrets_set PANEL_DB_PASSWORD "${PANEL_DB_PASSWORD}"
     export PANEL_DB_PASSWORD
   fi
 
@@ -251,6 +271,9 @@ prompt_install_options() {
   APP_URL="${APP_URL:-}"
   ADMIN_EMAIL="${ADMIN_EMAIL:-}"
   DOCKER_UPSTREAM_IP="${DOCKER_UPSTREAM_IP:-}"
+  WINGS_DOMAIN="${WINGS_DOMAIN:-}"
+  CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
   export INSTALL_MODE PANEL_DOMAIN PANEL_HTTPS PANEL_WEBSERVER PHP_VERSION PANEL_DATABASE PANEL_REDIS PANEL_DIR
   export PANEL_FIREWALL PANEL_CERTBOT DOCKER_DIR APP_URL ADMIN_EMAIL DOCKER_UPSTREAM_IP
+  export WINGS_DOMAIN CERTBOT_EMAIL
 }

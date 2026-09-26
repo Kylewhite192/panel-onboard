@@ -17,13 +17,27 @@ PANEL_DATABASE="${PANEL_DATABASE:-sqlite}"
 # 1 installs Redis from the advanced guide. The web installer still receives the Redis settings.
 PANEL_REDIS="${PANEL_REDIS:-0}"
 
+INSTALLER_VERSION=0.1.0
+INSTALLER_STATE_DIR="${INSTALLER_STATE_DIR:-/root/pelican-installer}"
+INSTALLER_STATE="${INSTALLER_STATE:-${INSTALLER_STATE_DIR}/state.env}"
+INSTALLER_SECRETS="${INSTALLER_SECRETS:-${INSTALLER_STATE_DIR}/secrets.env}"
+INSTALLER_SUMMARY="${INSTALLER_SUMMARY:-${INSTALLER_STATE_DIR}/install-summary.txt}"
+INSTALLER_LOG="${INSTALLER_LOG:-/var/log/pelican-installer.log}"
+
 # Stderr, because question functions print the answer on stdout and callers capture it.
+# The log file is separate and must never receive passwords or APP_KEY.
 log() {
   printf '==> %s\n' "$*" >&2
+  if [[ "${INSTALLER_LOGGING:-0}" == "1" ]]; then
+    printf '%s %s\n' "$(date -Iseconds)" "$*" >>"${INSTALLER_LOG}"
+  fi
 }
 
 die() {
   printf 'error: %s\n' "$*" >&2
+  if [[ "${INSTALLER_LOGGING:-0}" == "1" ]]; then
+    printf '%s error: %s\n' "$(date -Iseconds)" "$*" >>"${INSTALLER_LOG}"
+  fi
   exit 1
 }
 
@@ -98,3 +112,5 @@ reject_ip_with_https() {
 source "${ROOT_DIR}/lib/ui.sh"
 # shellcheck source=../lib/prompts.sh
 source "${ROOT_DIR}/lib/prompts.sh"
+# shellcheck source=../lib/state.sh
+source "${ROOT_DIR}/lib/state.sh"
