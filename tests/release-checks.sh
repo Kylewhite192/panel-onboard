@@ -61,6 +61,10 @@ if ( verify_sha256_file "${payload}" "${tmp}/checksum-bad.txt" "panel.tar.gz" ) 
 fi
 tag="$(release_tag_from_url "https://github.com/pelican/panel/releases/download/v1.0.0-beta38/panel.tar.gz")"
 [[ "${tag}" == "v1.0.0-beta38" ]]
+if release_tag_from_url "https://release-assets.githubusercontent.com/github-production-release-asset/1/abc?sp=r" >/dev/null; then
+  echo "A CDN download URL was accepted as a release tag." >&2
+  exit 1
+fi
 
 export INSTALLER_LOGGING=1
 export INSTALLER_STAGE=install-mariadb

@@ -26,9 +26,11 @@ log "Downloading Wings (${arch})."
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
 binary="wings_linux_${arch}"
-release_url="$(curl --proto '=https' --tlsv1.2 -fL --retry 3 -o "${workdir}/${binary}" -w '%{url_effective}' \
-  "https://github.com/pelican/wings/releases/latest/download/${binary}")"
-wings_tag="$(release_tag_from_url "${release_url}")" || die "Could not read the Wings release tag from ${release_url}."
+asset_url="$(github_release_asset_url "https://github.com/pelican/wings/releases/latest/download/${binary}")" \
+  || die "Could not resolve the latest Wings release."
+wings_tag="$(release_tag_from_url "${asset_url}")" || die "Could not read the Wings release tag from ${asset_url}."
+log "Downloading Wings release ${wings_tag}."
+curl --proto '=https' --tlsv1.2 -fL --retry 3 -o "${workdir}/${binary}" "${asset_url}"
 curl --proto '=https' --tlsv1.2 -fsSL --retry 3 -o "${workdir}/checksums.txt" \
   "https://github.com/pelican/wings/releases/download/${wings_tag}/checksums.txt"
 verify_sha256_file "${workdir}/${binary}" "${workdir}/checksums.txt" "${binary}"

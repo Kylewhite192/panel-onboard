@@ -23,9 +23,11 @@ log "Creating ${PANEL_DIR} and downloading the latest panel release."
 mkdir -p "${PANEL_DIR}"
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
-release_url="$(curl --proto '=https' --tlsv1.2 -fL --retry 3 -o "${workdir}/panel.tar.gz" -w '%{url_effective}' \
-  "https://github.com/pelican/panel/releases/latest/download/panel.tar.gz")"
-panel_tag="$(release_tag_from_url "${release_url}")" || die "Could not read the panel release tag from ${release_url}."
+asset_url="$(github_release_asset_url "https://github.com/pelican/panel/releases/latest/download/panel.tar.gz")" \
+  || die "Could not resolve the latest panel release."
+panel_tag="$(release_tag_from_url "${asset_url}")" || die "Could not read the panel release tag from ${asset_url}."
+log "Downloading panel release ${panel_tag}."
+curl --proto '=https' --tlsv1.2 -fL --retry 3 -o "${workdir}/panel.tar.gz" "${asset_url}"
 curl --proto '=https' --tlsv1.2 -fsSL --retry 3 -o "${workdir}/checksum.txt" \
   "https://github.com/pelican/panel/releases/download/${panel_tag}/checksum.txt"
 verify_sha256_file "${workdir}/panel.tar.gz" "${workdir}/checksum.txt" "panel.tar.gz"

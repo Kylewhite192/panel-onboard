@@ -126,15 +126,27 @@ run_captured() {
   return "${status}"
 }
 
-# Tag from a GitHub release asset URL after curl has followed /releases/latest.
+# Tag from https://github.com/<org>/<repo>/releases/download/<tag>/<file>.
+# The final CDN URL does not contain the tag, so this rejects that link.
 release_tag_from_url() {
   local url="$1" tag
+  [[ "${url}" == https://github.com/*/releases/download/*/* ]] || return 1
   tag="${url##*/download/}"
+  tag="${tag%%\?*}"
   tag="${tag%%/*}"
-  if [[ -z "${tag}" || "${tag}" == "${url}" || "${tag}" == */* ]]; then
+  [[ "${tag}" =~ ^[A-Za-z0-9._+-]+$ ]] || return 1
+  printf '%s' "${tag}"
+}
+
+# /releases/latest/download/<file> redirects to /releases/download/<tag>/<file>,
+# then to a signed release-assets URL. The tag is only on the first redirect.
+github_release_asset_url() {
+  local latest="$1" asset_url
+  asset_url="$(curl --proto '=https' --tlsv1.2 -fsS -o /dev/null -w '%{redirect_url}' "${latest}")"
+  if [[ -z "${asset_url}" ]]; then
     return 1
   fi
-  printf '%s' "${tag}"
+  printf '%s' "${asset_url}"
 }
 
 # checksum file lines look like: <sha256>  <filename>
