@@ -8,14 +8,16 @@ installer_file_set() {
   if [[ "${value}" == *$'\n'* || "${key}" == *$'\n'* ]]; then
     die "Installer state cannot contain a newline."
   fi
-  tmp="$(mktemp)"
+  install -d -m 700 "$(dirname "${file}")"
+  # Write the whole file, then rename it. mv on the same directory replaces
+  # the previous file in one step, so a crash cannot leave a half-written state.
+  tmp="$(mktemp "${file}.tmp.XXXXXX")"
   if [[ -f "${file}" ]]; then
     grep -v "^${key}=" "${file}" >"${tmp}" || true
   fi
   printf '%s=%s\n' "${key}" "${value}" >>"${tmp}"
-  cat "${tmp}" >"${file}"
-  rm -f "${tmp}"
-  chmod 600 "${file}"
+  chmod 600 "${tmp}"
+  mv -f "${tmp}" "${file}"
 }
 
 installer_file_get() {
@@ -55,11 +57,39 @@ state_is_complete() {
 
 state_clear_stages() {
   local tmp
-  tmp="$(mktemp)"
+  tmp="$(mktemp "${INSTALLER_STATE}.tmp.XXXXXX")"
   grep -v '^stage_' "${INSTALLER_STATE}" >"${tmp}" || true
-  cat "${tmp}" >"${INSTALLER_STATE}"
-  rm -f "${tmp}"
-  chmod 600 "${INSTALLER_STATE}"
+  chmod 600 "${tmp}"
+  mv -f "${tmp}" "${INSTALLER_STATE}"
+}
+
+warn_installer_version() {
+  local saved=""
+  saved="$(state_get INSTALLER_VERSION || true)"
+  if [[ -n "${saved}" && "${saved}" != "${INSTALLER_VERSION}" ]]; then
+    log "Saved installation state: ${saved}"
+    log "Current installer:         ${INSTALLER_VERSION}"
+    log "This state was written by a different installer version. Finished stages may not match these scripts."
+  fi
+}
+
+log_new_run() {
+  local stamp
+  stamp="$(date -Iseconds)"
+  {
+    printf '==================================================\n'
+    printf 'New installation run\n'
+    printf '%s\n' "${stamp}"
+    printf '==================================================\n'
+  } >&2
+  if [[ "${INSTALLER_LOGGING:-0}" == "1" ]]; then
+    {
+      printf '==================================================\n'
+      printf 'New installation run\n'
+      printf '%s\n' "${stamp}"
+      printf '==================================================\n'
+    } >>"${INSTALLER_LOG}"
+  fi
 }
 
 state_save_choices() {
@@ -135,6 +165,7 @@ offer_resume() {
   local choice value
   [[ -f "${INSTALLER_STATE}" ]] || return 1
   grep -q '^stage_' "${INSTALLER_STATE}" || return 1
+  warn_installer_version
   while true; do
     choice="$(ui_menu "Previous Pelican installation detected" resume \
       "resume|Resume installation" \
@@ -150,6 +181,7 @@ offer_resume() {
           PANEL_DB_PASSWORD="${value}"
           export PANEL_DB_PASSWORD
         fi
+        log_new_run
         state_clear_stages
         return 1
         ;;

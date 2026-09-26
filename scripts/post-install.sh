@@ -13,7 +13,12 @@
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 require_root
+dry_run_step
 
+# A later shell does not inherit the install answers. The saved state is the
+# record of where this panel was installed.
+state_init
+state_load_choices
 PANEL_DIR="${PANEL_DIR:-/var/www/pelican}"
 if [[ ! -f "${PANEL_DIR}/artisan" ]]; then
   die "artisan is missing in ${PANEL_DIR}."
@@ -24,10 +29,6 @@ fi
 if ! id www-data >/dev/null 2>&1; then
   die "User www-data does not exist."
 fi
-
-dry_run_step
-
-state_init
 
 if ! command -v crontab >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive

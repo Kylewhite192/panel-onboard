@@ -49,7 +49,7 @@ Panel choices:
 
 It then installs the panel and runs `php artisan p:environment:setup`. That command copies `.env`, generates `APP_KEY`, and does not ask for a URL. The installer sets `APP_URL` to the address you chose so the installer page does not load assets from `panel.test`. Back up `APP_KEY` from `/var/www/pelican/.env`, then open `/installer` in a browser.
 
-When that page has finished, run `sudo bash scripts/post-install.sh`. It creates the `pelican-queue` service and the `www-data` cron that runs `schedule:run` every minute, which is what the troubleshooting page expects. It refuses to run until `.env` contains `APP_INSTALLED=true`. The Docker image has its own queue worker, so this script is only for the panel on the host.
+When that page has finished, run `sudo bash scripts/post-install.sh`. It reads the saved install choices, including a custom panel directory, then creates the `pelican-queue` service and the `www-data` cron that runs `schedule:run` every minute, which is what the troubleshooting page expects. It refuses to run until `.env` contains `APP_INSTALLED=true`. The Docker image has its own queue worker, so this script is only for the panel on the host.
 
 MariaDB and Redis settings are entered again in the web installer. The installer does not run `p:environment:database` or `p:redis:setup`.
 
@@ -72,7 +72,7 @@ Environment variables pre-fill the suggestions: `INSTALL_MODE`, `PANEL_DOMAIN`, 
 
 `INSTALL_DRY_RUN=1 bash install.sh` prints the script order and does not ask questions or change the system. `INSTALL_MODE` selects which order is printed (`panel` when unset).
 
-A real run records each stage in `/root/pelican-installer/state.env` after that stage exits 0, and appends status lines to `/var/log/pelican-installer.log`. Both files are mode `600`. Run the installer again after a failure and choose Resume to skip the stages that already finished. The MariaDB password and `APP_KEY` are written to `/root/pelican-installer/secrets.env`, not to the log. The generated password is shown once, because the browser installer asks for it again. At the end, the installer checks the services for the mode you chose. Wings is installed and left stopped. The queue worker and scheduler are checked by `scripts/post-install.sh` after the browser installer.
+A real run records each stage in `/root/pelican-installer/state.env` after that stage exits 0, and appends status lines to `/var/log/pelican-installer.log`. Both files are mode `600`. Run the installer again after a failure and choose Resume to skip the stages that already finished. If that state was written by a different installer version, the menu warns before resuming. Start again marks a new run in the log. The MariaDB password and `APP_KEY` are written to `/root/pelican-installer/secrets.env`, not to the log. The generated password is shown once, because the browser installer asks for it again. At the end, the installer checks the services for the mode you chose. A panel URL counts as up only for HTTP 2xx or 3xx. Wings is installed and left stopped. The queue worker and scheduler are checked by `scripts/post-install.sh` after the browser installer.
 
 ## Scripts
 

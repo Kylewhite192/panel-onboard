@@ -9,6 +9,7 @@ source "$(dirname "$0")/lib.sh"
 require_root
 dry_run_step
 
+state_load_choices
 verify_mode="${1:-install}"
 checks_failed=0
 
@@ -55,10 +56,12 @@ service_check() {
 http_check() {
   local url="$1" code
   code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${url}" || true)"
-  if [[ -n "${code}" && "${code}" != "000" ]]; then
+  if [[ "${code}" =~ ^[0-9]+$ ]] && (( code >= 200 && code < 400 )); then
     pass_check "Panel responds at ${url} (HTTP ${code})"
+  elif [[ -z "${code}" || "${code}" == "000" ]]; then
+    fail_check "Panel did not respond at ${url}"
   else
-    fail_check "Panel responds at ${url}"
+    fail_check "Panel returned HTTP ${code} at ${url}"
   fi
 }
 
