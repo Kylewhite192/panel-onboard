@@ -25,25 +25,60 @@ esac
 
 log "The panel Docker guide is still a work in progress. The standard install is the Caddy path."
 
-# The docs use 172.20.0.0/16. A host or Docker network in that range makes
-# compose up fail, so pick the next free 172.20–172.31/16.
-choose_compose_subnet() {
-  local n prefix cidr existing
-  for n in $(seq 20 31); do
-    prefix="172.${n}"
-    cidr="${prefix}.0.0/16"
-    if ip -4 addr show 2>/dev/null | grep -q "inet ${prefix}\\."; then
-      continue
-    fi
-    if ip -4 route show 2>/dev/null | grep -Eq "(^| )${prefix}\\."; then
-      continue
-    fi
-    existing="$(docker network ls -q 2>/dev/null | xargs -r docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null || true)"
-    if printf '%s\n' "${existing}" | grep -q "^${prefix}\\."; then
-      continue
-    fi
-    printf '%s' "${cidr}"
+# Inclusive start and end of an IPv4 CIDR, as integers.
+cidr_bounds() {
+  local cidr="$1" prefix base mask start end
+  [[ "${cidr}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)(/([0-9]+))?$ ]] || return 1
+  prefix="${BASH_REMATCH[6]:-32}"
+  (( prefix >= 0 && prefix <= 32 )) || return 1
+  (( 10#${BASH_REMATCH[1]} <= 255 && 10#${BASH_REMATCH[2]} <= 255 && 10#${BASH_REMATCH[3]} <= 255 && 10#${BASH_REMATCH[4]} <= 255 )) || return 1
+  base=$(( (10#${BASH_REMATCH[1]} << 24) + (10#${BASH_REMATCH[2]} << 16) + (10#${BASH_REMATCH[3]} << 8) + 10#${BASH_REMATCH[4]} ))
+  if (( prefix == 0 )); then
+    printf '0 4294967295\n'
     return 0
+  fi
+  mask=$(( (4294967295 << (32 - prefix)) & 4294967295 ))
+  start=$(( base & mask ))
+  end=$(( start | (mask ^ 4294967295) ))
+  printf '%s %s\n' "${start}" "${end}"
+}
+
+cidrs_overlap() {
+  local a1 a2 b1 b2
+  read -r a1 a2 < <(cidr_bounds "$1") || return 1
+  read -r b1 b2 < <(cidr_bounds "$2") || return 1
+  (( a1 <= b2 && b1 <= a2 ))
+}
+
+# The docs use 172.20.0.0/16. A host or Docker network that overlaps that
+# range makes compose up fail, including a wider route such as 172.16.0.0/12.
+# Pick the next free 172.20–172.31/16.
+choose_compose_subnet() {
+  local -a cidrs=()
+  local n cidr existing line taken
+  while read -r line; do
+    [[ "${line}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$ ]] || continue
+    cidrs+=("${line}")
+  done < <(
+    ip -4 addr show 2>/dev/null | awk '/inet / { print $2 }'
+    ip -4 route show 2>/dev/null | awk '$1 ~ /\// { print $1 }'
+    docker network ls -q 2>/dev/null | xargs -r docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null || true
+  )
+  for n in $(seq 20 31); do
+    cidr="172.${n}.0.0/16"
+    taken=0
+    if ((${#cidrs[@]} > 0)); then
+      for existing in "${cidrs[@]}"; do
+        if cidrs_overlap "${cidr}" "${existing}"; then
+          taken=1
+          break
+        fi
+      done
+    fi
+    if (( taken == 0 )); then
+      printf '%s' "${cidr}"
+      return 0
+    fi
   done
   return 1
 }

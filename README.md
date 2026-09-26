@@ -57,7 +57,7 @@ Wings choices, from the Wings install page:
 
 - Docker CE from `https://get.docker.com/` on the stable channel.
 - The Wings binary and the systemd unit. The service is not started. Wings needs `/etc/pelican/config.yml` from the panel node page, then `wings --debug`, then `systemctl enable --now wings`.
-- Certbot, optional. Standalone HTTP challenge, plus the 23:00 renewal cron from the SSL guide. Suggested when the panel on this machine is using HTTPS.
+- Certbot, optional. Standalone HTTP challenge, plus the 23:00 renewal cron from the SSL guide. Renewal stops Caddy or Nginx if either is listening on port 80, then starts it again. Suggested when the panel on this machine is using HTTPS.
 - OpenVZ and LXC ask before continuing. The modified `-grs-ipv6-64` and `-mod-std-ipv6-64` kernels are refused.
 
 Docker choices:
@@ -92,7 +92,7 @@ Environment variables pre-fill the suggestions: `INSTALL_MODE`, `PANEL_DOMAIN`, 
 | `scripts/install-wings.sh` | Wings binary and systemd unit. Does not start Wings |
 | `scripts/install-certbot.sh` | Optional. Certbot standalone certificate for Wings, and the renewal cron |
 | `scripts/configure-firewall.sh` | Optional. UFW rules for the selected mode, including the SSH port in use |
-| `scripts/install-panel-docker.sh` | Official `compose.yml`, or that file plus the reverse-proxy Caddyfile. Picks another `172.20`–`172.31` subnet when `172.20.0.0/16` is taken |
+| `scripts/install-panel-docker.sh` | Official `compose.yml`, or that file plus the reverse-proxy Caddyfile. Picks another `172.20`–`172.31` subnet when that range overlaps an existing network, including a wider one such as `172.16.0.0/12` |
 | `scripts/post-install.sh` | After the browser installer. Queue worker and the panel schedule cron |
 
 Apache is not part of this installer. The queue worker and the panel cron are in `scripts/post-install.sh`, which runs after `/installer`, not as a stage of `install.sh`. The panel Docker guide still calls the non-Docker install the one to prefer.

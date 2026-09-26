@@ -6,6 +6,8 @@
 # --non-interactive --agree-tos --email are Certbot's flags for that command
 # without a prompt. The 23:00 cron is the renewal line from the same page,
 # with the deploy hook restarting wings.
+# Standalone renewal binds port 80. The pre and post hooks saved on this
+# certificate stop Caddy or Nginx for that attempt and start them again.
 
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
@@ -52,8 +54,15 @@ if systemctl is-active --quiet nginx; then
 fi
 
 log "Requesting a certificate for ${WINGS_DOMAIN}."
+# Saved on this certificate only, so a later `certbot renew` does not stop
+# Nginx for the panel certificate that uses the Nginx plugin.
+pre_hook='rm -f /run/pelican-certbot-stopped; for s in caddy nginx; do if systemctl is-active --quiet "$s"; then systemctl stop "$s" && printf "%s\n" "$s" >> /run/pelican-certbot-stopped; fi; done'
+post_hook='if [ -s /run/pelican-certbot-stopped ]; then while read -r s; do systemctl start "$s" || true; done < /run/pelican-certbot-stopped; rm -f /run/pelican-certbot-stopped; fi'
 certbot certonly --standalone --non-interactive --agree-tos \
-  --email "${CERTBOT_EMAIL}" -d "${WINGS_DOMAIN}" --keep-until-expiring
+  --email "${CERTBOT_EMAIL}" -d "${WINGS_DOMAIN}" --keep-until-expiring \
+  --pre-hook "${pre_hook}" \
+  --post-hook "${post_hook}" \
+  --deploy-hook "systemctl restart wings"
 
 cron_line='0 23 * * * certbot renew --quiet --deploy-hook "systemctl restart wings"'
 current="$(crontab -l 2>/dev/null || true)"
