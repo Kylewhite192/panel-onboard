@@ -30,7 +30,7 @@ ensure_gum() {
   fi
   install -d -m 0755 /etc/apt/keyrings
   keytmp="$(mktemp)"
-  run_captured curl -fsSL -o "${keytmp}.asc" https://repo.charm.sh/apt/gpg.key || die "Could not download the Charm apt key."
+  run_captured curl --proto '=https' --tlsv1.2 -fsSL -o "${keytmp}.asc" https://repo.charm.sh/apt/gpg.key || die "Could not download the Charm apt key."
   run_captured gpg --dearmor -o "${keytmp}" "${keytmp}.asc" || die "Could not install the Charm apt key."
   rm -f "${keytmp}.asc"
   install -m 0644 "${keytmp}" /etc/apt/keyrings/charm.gpg
@@ -41,10 +41,12 @@ ensure_gum() {
   if ! command -v gum >/dev/null 2>&1; then
     die "gum was not installed."
   fi
+  return 0
 }
 
 gum_cancelled() {
   die "Installation aborted."
+  return 1
 }
 
 trim_answer() {
@@ -52,6 +54,7 @@ trim_answer() {
   value="${value#"${value%%[![:space:]]*}"}"
   value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "${value}"
+  return 0
 }
 
 # ask "Prompt" "default"
@@ -73,6 +76,7 @@ ask() {
   else
     printf '%s' "${answer}"
   fi
+  return 0
 }
 
 # ask_yes_no "Prompt" "1"|"0"
@@ -93,6 +97,7 @@ ask_yes_no() {
   else
     printf '0'
   fi
+  return 0
 }
 
 ask_password() {

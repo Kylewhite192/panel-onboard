@@ -157,7 +157,7 @@ write_http_site
 enable_site
 
 if [[ "${PANEL_HTTPS}" != "1" ]]; then
-  log "Nginx is serving http://${PANEL_DOMAIN}/"
+  log "Nginx is serving ${PANEL_DOMAIN} with HTTP."
   exit 0
 fi
 

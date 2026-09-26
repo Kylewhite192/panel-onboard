@@ -19,7 +19,7 @@ if [[ -z "${PANEL_DB_PASSWORD:-}" ]]; then
 fi
 
 log "Installing MariaDB."
-curl -sSL https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
+curl --proto '=https' --tlsv1.2 -fsSL https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash
 apt-get install -y mariadb-server
 systemctl enable --now mariadb
 

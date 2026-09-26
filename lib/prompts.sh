@@ -25,6 +25,7 @@ confirm_wings_host() {
   esac
   WINGS_VIRT_CHECKED=1
   export WINGS_VIRT_CHECKED
+  return 0
 }
 
 prompt_panel_options() {
@@ -92,6 +93,7 @@ prompt_panel_options() {
   if [[ -z "${PANEL_DIR}" ]]; then
     die "Panel directory cannot be empty."
   fi
+  return 0
 }
 
 prompt_docker_options() {
@@ -116,6 +118,7 @@ prompt_docker_options() {
   APP_URL="${scheme}://${PANEL_DOMAIN}"
   ADMIN_EMAIL="$(ask_email "Admin email (Let's Encrypt uses this when HTTPS is on)" "${ADMIN_EMAIL:-}")"
   DOCKER_DIR="$(ask "Docker compose directory" "${DOCKER_DIR}")"
+  return 0
 }
 
 prompt_docker_proxy_options() {
@@ -146,6 +149,7 @@ prompt_docker_proxy_options() {
   done
   ADMIN_EMAIL="$(ask_email "Admin email" "${ADMIN_EMAIL:-}")"
   DOCKER_DIR="$(ask "Docker compose directory" "${DOCKER_DIR}")"
+  return 0
 }
 
 prompt_wings_options() {
@@ -178,6 +182,7 @@ prompt_wings_options() {
   elif [[ "${INSTALL_MODE}" == "both" && "${PANEL_HTTPS}" == "1" ]]; then
     log "The Wings docs say Wings must use SSL when the panel uses SSL."
   fi
+  return 0
 }
 
 # On a terminal, ask for every install choice. Environment values are the

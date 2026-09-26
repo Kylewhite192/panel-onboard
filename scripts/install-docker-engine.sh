@@ -15,6 +15,6 @@ if docker compose version >/dev/null 2>&1; then
 fi
 
 log "Installing Docker CE from https://get.docker.com/ (stable channel)."
-curl -fsSL https://get.docker.com/ | CHANNEL=stable sh
+curl --proto '=https' --tlsv1.2 -fsSL https://get.docker.com/ | CHANNEL=stable sh
 systemctl enable --now docker
 docker compose version >/dev/null

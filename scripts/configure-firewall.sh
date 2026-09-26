@@ -42,12 +42,14 @@ case "${INSTALL_MODE}" in
   panel|both|docker|docker-proxy)
     ports+=(80 443)
     ;;
+  *) ;;
 esac
 
 case "${INSTALL_MODE}" in
   wings|both)
     ports+=(8080 2022)
     ;;
+  *) ;;
 esac
 
 if [[ "${PANEL_CERTBOT}" == "1" ]]; then

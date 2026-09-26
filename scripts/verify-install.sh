@@ -48,12 +48,16 @@ record_check() {
 }
 
 pass_check() {
-  record_check "✓ $1"
+  local label="$1"
+  record_check "✓ ${label}"
+  return 0
 }
 
 fail_check() {
-  record_check "✗ $1"
+  local label="$1"
+  record_check "✗ ${label}"
   checks_failed=1
+  return 0
 }
 
 service_check() {
@@ -169,12 +173,14 @@ else
         http_check "${site_url}/installer"
       fi
       ;;
+    *) ;;
   esac
 
   case "${INSTALL_MODE:-}" in
     wings|both|docker|docker-proxy)
       service_check "Docker running" docker
       ;;
+    *) ;;
   esac
 
   case "${INSTALL_MODE:-}" in
@@ -197,6 +203,7 @@ else
         http_check "${APP_URL}/installer"
       fi
       ;;
+    *) ;;
   esac
 
   case "${INSTALL_MODE:-}" in
@@ -207,6 +214,7 @@ else
         fail_check "Wings binary installed"
       fi
       ;;
+    *) ;;
   esac
 
   if [[ "${PANEL_FIREWALL:-0}" == "1" ]]; then

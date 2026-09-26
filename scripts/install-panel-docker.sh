@@ -44,9 +44,9 @@ cidr_bounds() {
 }
 
 cidrs_overlap() {
-  local a1 a2 b1 b2
-  read -r a1 a2 < <(cidr_bounds "$1") || return 1
-  read -r b1 b2 < <(cidr_bounds "$2") || return 1
+  local left="$1" right="$2" a1 a2 b1 b2
+  read -r a1 a2 < <(cidr_bounds "${left}") || return 1
+  read -r b1 b2 < <(cidr_bounds "${right}") || return 1
   (( a1 <= b2 && b1 <= a2 ))
 }
 

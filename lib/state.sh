@@ -3,6 +3,8 @@
 # Choices live in state.env. Passwords and APP_KEY live in secrets.env.
 # Neither file is written during a dry-run.
 
+INSTALLER_RUN_MARK='=================================================='
+
 installer_file_set() {
   local file="$1" key="$2" value="$3" tmp
   if [[ "${value}" == *$'\n'* || "${key}" == *$'\n'* ]]; then
@@ -18,6 +20,7 @@ installer_file_set() {
   printf '%s=%s\n' "${key}" "${value}" >>"${tmp}"
   chmod 600 "${tmp}"
   mv -f "${tmp}" "${file}"
+  return 0
 }
 
 installer_file_get() {
@@ -39,20 +42,28 @@ state_init() {
   fi
   log "Installer state: ${INSTALLER_STATE}"
   log "Installer log: ${INSTALLER_LOG}"
+  return 0
 }
 
 state_set() {
-  installer_file_set "${INSTALLER_STATE}" "$1" "$2"
+  local key="$1" value="$2"
+  installer_file_set "${INSTALLER_STATE}" "${key}" "${value}"
+  return 0
 }
 
 state_get() {
-  installer_file_get "${INSTALLER_STATE}" "$1"
+  local key="$1"
+  installer_file_get "${INSTALLER_STATE}" "${key}"
+  return $?
 }
 
 state_is_complete() {
-  local value=""
-  value="$(state_get "stage_$1" || true)"
-  [[ "${value}" == "complete" ]]
+  local stage="$1" value=""
+  value="$(state_get "stage_${stage}" || true)"
+  if [[ "${value}" == "complete" ]]; then
+    return 0
+  fi
+  return 1
 }
 
 state_clear_stages() {
@@ -61,6 +72,7 @@ state_clear_stages() {
   grep -v '^stage_' "${INSTALLER_STATE}" >"${tmp}" || true
   chmod 600 "${tmp}"
   mv -f "${tmp}" "${INSTALLER_STATE}"
+  return 0
 }
 
 warn_installer_version() {
@@ -71,25 +83,27 @@ warn_installer_version() {
     log "Current installer:         ${INSTALLER_VERSION}"
     log "This state was written by a different installer version. Finished stages may not match these scripts."
   fi
+  return 0
 }
 
 log_new_run() {
   local stamp
   stamp="$(date -Iseconds)"
   {
-    printf '==================================================\n'
+    printf '%s\n' "${INSTALLER_RUN_MARK}"
     printf 'New installation run\n'
     printf '%s\n' "${stamp}"
-    printf '==================================================\n'
+    printf '%s\n' "${INSTALLER_RUN_MARK}"
   } >&2
   if [[ "${INSTALLER_LOGGING:-0}" == "1" ]]; then
     {
-      printf '==================================================\n'
+      printf '%s\n' "${INSTALLER_RUN_MARK}"
       printf 'New installation run\n'
       printf '%s\n' "${stamp}"
-      printf '==================================================\n'
+      printf '%s\n' "${INSTALLER_RUN_MARK}"
     } >>"${INSTALLER_LOG}"
   fi
+  return 0
 }
 
 state_save_choices() {
@@ -100,6 +114,7 @@ state_save_choices() {
     WINGS_DOMAIN CERTBOT_EMAIL APP_URL ADMIN_EMAIL DOCKER_DIR DOCKER_UPSTREAM_IP; do
     state_set "${key}" "${!key-}"
   done
+  return 0
 }
 
 state_load_choices() {
@@ -112,17 +127,22 @@ state_load_choices() {
       export "${key?}"
     fi
   done
+  return 0
 }
 
 secrets_set() {
+  local key="$1" value="$2"
   install -d -m 700 "${INSTALLER_STATE_DIR}"
   touch "${INSTALLER_SECRETS}"
   chmod 600 "${INSTALLER_SECRETS}"
-  installer_file_set "${INSTALLER_SECRETS}" "$1" "$2"
+  installer_file_set "${INSTALLER_SECRETS}" "${key}" "${value}"
+  return 0
 }
 
 secrets_get() {
-  installer_file_get "${INSTALLER_SECRETS}" "$1"
+  local key="$1"
+  installer_file_get "${INSTALLER_SECRETS}" "${key}"
+  return $?
 }
 
 secrets_save_app_key() {
@@ -158,6 +178,7 @@ show_install_status() {
     printf 'Last lines of %s:\n' "${INSTALLER_LOG}" >&2
     tail -n 40 "${INSTALLER_LOG}" >&2 || true
   fi
+  return 0
 }
 
 # 0 means resume with the saved choices. 1 means ask the questions again.
@@ -186,6 +207,7 @@ offer_resume() {
         return 1
         ;;
       exit) exit 0 ;;
+      *) die "Unknown resume choice ${choice}." ;;
     esac
   done
 }

@@ -12,7 +12,7 @@ dry_run_step
 
 log "Installing Redis."
 apt-get install -y lsb-release curl gpg
-curl -fsSL https://packages.redis.io/gpg | gpg --dearmor --yes -o /usr/share/keyrings/redis-archive-keyring.gpg
+curl --proto '=https' --tlsv1.2 -fsSL https://packages.redis.io/gpg | gpg --dearmor --yes -o /usr/share/keyrings/redis-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" \
   | tee /etc/apt/sources.list.d/redis.list >/dev/null
 apt-get update -y
