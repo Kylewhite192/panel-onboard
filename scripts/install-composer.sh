@@ -16,7 +16,8 @@ log "Installing Composer into /usr/local/bin/composer."
 setup="$(mktemp)"
 trap 'rm -f "${setup}"' EXIT
 curl --proto '=https' --tlsv1.2 -fsSL --retry 3 -o "${setup}" https://getcomposer.org/installer
-expected="$(curl --proto '=https' --tlsv1.2 -fsSL --retry 3 https://getcomposer.org/installer.sig | tr -d '[:space:]')"
+# getcomposer.org/installer.sig is a 404. The signature is published here.
+expected="$(curl --proto '=https' --tlsv1.2 -fsSL --retry 3 https://composer.github.io/installer.sig | tr -d '[:space:]')"
 expected="${expected,,}"
 if [[ ! "${expected}" =~ ^[0-9a-f]{96}$ ]]; then
   die "Composer did not publish a SHA384 installer signature."

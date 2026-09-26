@@ -64,7 +64,7 @@ Environment variables pre-fill the suggestions: `INSTALL_MODE`, `PANEL_DOMAIN`, 
 
 A generated MariaDB password is shown once on the terminal, because the browser installer asks for it again. It is not written to the log. `APP_KEY` is copied into `secrets.env` and is not written to the log.
 
-The panel tarball and the Wings binary are checked against the SHA256 file published with that GitHub release. Composer’s installer is checked against the SHA384 signature at `https://getcomposer.org/installer.sig`. The Docker engine script and the MariaDB repository script do not publish a checksum this installer can pin.
+The panel tarball and the Wings binary are checked against the SHA256 file published with that GitHub release. Composer’s installer is checked against the SHA384 signature at `https://composer.github.io/installer.sig`. The Docker engine script and the MariaDB repository script do not publish a checksum this installer can pin.
 
 ## Resume
 
