@@ -156,6 +156,13 @@ log "Starting the panel container."
 (
   cd "${DOCKER_DIR}"
   docker compose up -d
+  image_digest="$(docker image inspect ghcr.io/pelican/panel:latest --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+  if [[ -n "${image_digest}" ]]; then
+    state_set PANEL_IMAGE "${image_digest}"
+    log "Panel image ${image_digest}."
+  else
+    log "The panel image ghcr.io/pelican/panel:latest did not report a digest."
+  fi
   key_line="$(docker compose logs panel 2>/dev/null | grep 'Generated app key:' | tail -n 1 || true)"
   if [[ -n "${key_line}" ]]; then
     secrets_save_app_key "${key_line##*Generated app key: }"

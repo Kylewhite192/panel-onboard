@@ -13,7 +13,21 @@ if [[ ! -f "${PANEL_DIR}/composer.json" ]]; then
 fi
 
 log "Installing Composer into /usr/local/bin/composer."
-curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+setup="$(mktemp)"
+trap 'rm -f "${setup}"' EXIT
+curl -fsSL --retry 3 -o "${setup}" https://getcomposer.org/installer
+expected="$(curl -fsSL --retry 3 https://getcomposer.org/installer.sig | tr -d '[:space:]')"
+expected="${expected,,}"
+if [[ ! "${expected}" =~ ^[0-9a-f]{96}$ ]]; then
+  die "Composer did not publish a SHA384 installer signature."
+fi
+actual="$(SETUP_FILE="${setup}" php -r 'echo hash_file("sha384", getenv("SETUP_FILE"));')"
+actual="${actual,,}"
+if [[ "${actual}" != "${expected}" ]]; then
+  die "Composer installer signature did not match."
+fi
+log "Composer installer signature matched."
+php "${setup}" --install-dir=/usr/local/bin --filename=composer
 
 log "Installing panel PHP dependencies."
 cd "${PANEL_DIR}"

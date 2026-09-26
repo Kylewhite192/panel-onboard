@@ -22,20 +22,22 @@ ensure_gum() {
 
   log "Installing gum for the install questions."
   export DEBIAN_FRONTEND=noninteractive
-  # apt writes the package list to stdout. This function runs inside a
-  # captured prompt, so that list must stay on stderr.
+  # apt writes the package list to stdout. run_captured keeps that on stderr
+  # and copies it into the installer log. It must not reach a captured answer.
   if ! command -v gpg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-    apt-get update >&2
-    apt-get install -y ca-certificates curl gnupg >&2
+    run_captured apt-get update || die "apt-get update failed while installing gum."
+    run_captured apt-get install -y ca-certificates curl gnupg || die "Could not install curl and gnupg."
   fi
   install -d -m 0755 /etc/apt/keyrings
   keytmp="$(mktemp)"
-  curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor >"${keytmp}"
+  run_captured curl -fsSL -o "${keytmp}.asc" https://repo.charm.sh/apt/gpg.key || die "Could not download the Charm apt key."
+  run_captured gpg --dearmor -o "${keytmp}" "${keytmp}.asc" || die "Could not install the Charm apt key."
+  rm -f "${keytmp}.asc"
   install -m 0644 "${keytmp}" /etc/apt/keyrings/charm.gpg
   rm -f "${keytmp}"
   printf 'deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *\n' >/etc/apt/sources.list.d/charm.list
-  apt-get update >&2
-  apt-get install -y gum >&2
+  run_captured apt-get update || die "apt-get update failed while installing gum."
+  run_captured apt-get install -y gum || die "Could not install gum."
   if ! command -v gum >/dev/null 2>&1; then
     die "gum was not installed."
   fi

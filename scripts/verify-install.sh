@@ -23,6 +23,18 @@ else
     printf 'Pelican installation verification\n'
     printf 'Installer version: %s\n' "${INSTALLER_VERSION}"
     printf 'Mode: %s\n' "${INSTALL_MODE:-unknown}"
+    panel_release="$(state_get PANEL_VERSION || true)"
+    wings_release="$(state_get WINGS_VERSION || true)"
+    panel_image="$(state_get PANEL_IMAGE || true)"
+    if [[ -n "${panel_release}" ]]; then
+      printf 'Panel release: %s\n' "${panel_release}"
+    fi
+    if [[ -n "${wings_release}" ]]; then
+      printf 'Wings release: %s\n' "${wings_release}"
+    fi
+    if [[ -n "${panel_image}" ]]; then
+      printf 'Panel image: %s\n' "${panel_image}"
+    fi
   } >>"${INSTALLER_SUMMARY}"
 fi
 
@@ -54,11 +66,25 @@ service_check() {
 }
 
 http_check() {
-  local url="$1" code
-  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${url}" || true)"
-  if [[ "${code}" =~ ^[0-9]+$ ]] && (( code >= 200 && code < 400 )); then
-    pass_check "Panel responds at ${url} (HTTP ${code})"
-  elif [[ -z "${code}" || "${code}" == "000" ]]; then
+  local url="$1" code="" attempt attempts pause
+  # A refused connection returns immediately, so ten tries land near 30 seconds.
+  # max-time only bounds a hung request. A lasting 4xx or 5xx still fails.
+  attempts="${PANEL_HTTP_ATTEMPTS:-10}"
+  pause="${PANEL_HTTP_WAIT:-3}"
+  for (( attempt = 1; attempt <= attempts; attempt++ )); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "${url}" || true)"
+    if [[ "${code}" =~ ^[0-9]+$ ]] && (( code >= 200 && code < 400 )); then
+      pass_check "Panel responds at ${url} (HTTP ${code})"
+      return 0
+    fi
+    if [[ "${attempt}" -eq 1 ]]; then
+      log "Waiting for Pelican to become available..."
+    fi
+    if [[ "${attempt}" -lt "${attempts}" ]]; then
+      sleep "${pause}"
+    fi
+  done
+  if [[ -z "${code}" || "${code}" == "000" ]]; then
     fail_check "Panel did not respond at ${url}"
   else
     fail_check "Panel returned HTTP ${code} at ${url}"
@@ -154,7 +180,11 @@ else
   case "${INSTALL_MODE:-}" in
     docker|docker-proxy)
       if [[ -n "${DOCKER_DIR:-}" && -f "${DOCKER_DIR}/compose.yml" ]]; then
-        running="$(cd "${DOCKER_DIR}" && docker compose ps --status running -q || true)"
+        running="$(
+          if cd "${DOCKER_DIR}"; then
+            docker compose ps --status running -q || true
+          fi
+        )"
         if [[ -n "${running}" ]]; then
           pass_check "Panel container running"
         else

@@ -77,6 +77,7 @@ prompt_panel_options() {
         apt-get install -y openssl >&2
       fi
       PANEL_DB_PASSWORD="$(openssl rand -hex 32)"
+      # Shown once on the terminal. Do not pass this through log or run_captured.
       printf 'MariaDB password for pelican@127.0.0.1: %s\n' "${PANEL_DB_PASSWORD}" >&2
       printf 'Saved in %s\n' "${INSTALLER_SECRETS}" >&2
     else

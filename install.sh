@@ -23,7 +23,9 @@ require_root
 resuming=0
 if [[ "${INSTALL_DRY_RUN:-0}" != "1" ]]; then
   state_init
+  export INSTALLER_STAGE=check-os
   bash "${ROOT_DIR}/scripts/check-os.sh"
+  unset INSTALLER_STAGE
   if offer_resume; then
     resuming=1
     state_load_choices
@@ -58,12 +60,18 @@ run_step() {
     bash "${ROOT_DIR}/${script}"
     return 0
   fi
-  if bash "${ROOT_DIR}/${script}"; then
+  export INSTALLER_STAGE="${key}"
+  export INSTALLER_DIE_FOOTER=0
+  printf '%s --- %s ---\n' "$(date -Iseconds)" "${key}" >>"${INSTALLER_LOG}"
+  if run_captured bash "${ROOT_DIR}/${script}"; then
+    export INSTALLER_DIE_FOOTER=1
     state_set "stage_${key}" complete
   else
     status=$?
+    export INSTALLER_CAPTURING=0
+    export INSTALLER_DIE_FOOTER=1
     state_set "stage_${key}" failed
-    die "Stage ${script} failed (exit ${status}). The log is ${INSTALLER_LOG}."
+    die "Stage ${script} failed (exit ${status})."
   fi
 }
 
@@ -147,4 +155,19 @@ if [[ "${PANEL_CERTBOT}" == "1" ]]; then
   run_step scripts/install-certbot.sh
 fi
 
-bash "${ROOT_DIR}/scripts/verify-install.sh"
+if [[ "${INSTALL_DRY_RUN:-0}" == "1" ]]; then
+  bash "${ROOT_DIR}/scripts/verify-install.sh"
+else
+  export INSTALLER_STAGE=verify
+  export INSTALLER_DIE_FOOTER=0
+  printf '%s --- %s ---\n' "$(date -Iseconds)" "verify" >>"${INSTALLER_LOG}"
+  if run_captured bash "${ROOT_DIR}/scripts/verify-install.sh"; then
+    export INSTALLER_DIE_FOOTER=1
+  else
+    status=$?
+    export INSTALLER_CAPTURING=0
+    export INSTALLER_DIE_FOOTER=1
+    state_set stage_verify failed
+    die "Verification failed (exit ${status}). The summary is ${INSTALLER_SUMMARY}."
+  fi
+fi

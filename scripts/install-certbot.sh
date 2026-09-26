@@ -56,7 +56,9 @@ fi
 log "Requesting a certificate for ${WINGS_DOMAIN}."
 # Saved on this certificate only, so a later `certbot renew` does not stop
 # Nginx for the panel certificate that uses the Nginx plugin.
+# shellcheck disable=SC2016 # $s expands when Certbot runs the hook, not now.
 pre_hook='rm -f /run/pelican-certbot-stopped; for s in caddy nginx; do if systemctl is-active --quiet "$s"; then systemctl stop "$s" && printf "%s\n" "$s" >> /run/pelican-certbot-stopped; fi; done'
+# shellcheck disable=SC2016 # $s expands when Certbot runs the hook, not now.
 post_hook='if [ -s /run/pelican-certbot-stopped ]; then while read -r s; do systemctl start "$s" || true; done < /run/pelican-certbot-stopped; rm -f /run/pelican-certbot-stopped; fi'
 certbot certonly --standalone --non-interactive --agree-tos \
   --email "${CERTBOT_EMAIL}" -d "${WINGS_DOMAIN}" --keep-until-expiring \

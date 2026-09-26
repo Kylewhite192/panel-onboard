@@ -21,5 +21,14 @@ fi
 
 log "Creating ${PANEL_DIR} and downloading the latest panel release."
 mkdir -p "${PANEL_DIR}"
-cd "${PANEL_DIR}"
-curl -L https://github.com/pelican/panel/releases/latest/download/panel.tar.gz | tar -xzv
+workdir="$(mktemp -d)"
+trap 'rm -rf "${workdir}"' EXIT
+release_url="$(curl -fL --retry 3 -o "${workdir}/panel.tar.gz" -w '%{url_effective}' \
+  "https://github.com/pelican/panel/releases/latest/download/panel.tar.gz")"
+panel_tag="$(release_tag_from_url "${release_url}")" || die "Could not read the panel release tag from ${release_url}."
+curl -fsSL --retry 3 -o "${workdir}/checksum.txt" \
+  "https://github.com/pelican/panel/releases/download/${panel_tag}/checksum.txt"
+verify_sha256_file "${workdir}/panel.tar.gz" "${workdir}/checksum.txt" "panel.tar.gz"
+state_set PANEL_VERSION "${panel_tag}"
+log "Panel release ${panel_tag}."
+tar -xzf "${workdir}/panel.tar.gz" -C "${PANEL_DIR}"

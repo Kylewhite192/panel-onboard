@@ -1,0 +1,3 @@
+# source "$(dirname "$0")/lib.sh" is dynamic. ShellCheck cannot resolve it.
+disable=SC1091
+external-sources=true

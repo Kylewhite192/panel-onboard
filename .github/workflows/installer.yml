@@ -1,0 +1,35 @@
+name: Installer checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          for f in install.sh scripts/*.sh lib/*.sh tests/*.sh; do
+            bash -n "$f"
+          done
+
+      - name: ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck install.sh scripts/*.sh lib/*.sh tests/*.sh
+
+      - name: Release checks
+        run: bash tests/release-checks.sh
+
+      - name: Dry run
+        run: |
+          set -euo pipefail
+          for mode in panel wings both docker docker-proxy; do
+            echo "----- ${mode} -----"
+            INSTALL_DRY_RUN=1 INSTALL_MODE="$mode" bash install.sh
+          done

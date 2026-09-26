@@ -19,6 +19,7 @@ dry_run_step
 # record of where this panel was installed.
 state_init
 state_load_choices
+export INSTALLER_STAGE=post-install
 PANEL_DIR="${PANEL_DIR:-/var/www/pelican}"
 if [[ ! -f "${PANEL_DIR}/artisan" ]]; then
   die "artisan is missing in ${PANEL_DIR}."
@@ -32,8 +33,8 @@ fi
 
 if ! command -v crontab >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
-  apt-get update
-  apt-get install -y cron
+  run_captured apt-get update || die "apt-get update failed while installing cron."
+  run_captured apt-get install -y cron || die "Could not install cron."
 fi
 
 log "Creating the pelican-queue service."

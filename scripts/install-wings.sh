@@ -23,9 +23,18 @@ log "Creating /etc/pelican and /var/run/wings."
 mkdir -p /etc/pelican /var/run/wings
 
 log "Downloading Wings (${arch})."
-curl -fL -o /usr/local/bin/wings \
-  "https://github.com/pelican/wings/releases/latest/download/wings_linux_${arch}"
-chmod u+x /usr/local/bin/wings
+workdir="$(mktemp -d)"
+trap 'rm -rf "${workdir}"' EXIT
+binary="wings_linux_${arch}"
+release_url="$(curl -fL --retry 3 -o "${workdir}/${binary}" -w '%{url_effective}' \
+  "https://github.com/pelican/wings/releases/latest/download/${binary}")"
+wings_tag="$(release_tag_from_url "${release_url}")" || die "Could not read the Wings release tag from ${release_url}."
+curl -fsSL --retry 3 -o "${workdir}/checksums.txt" \
+  "https://github.com/pelican/wings/releases/download/${wings_tag}/checksums.txt"
+verify_sha256_file "${workdir}/${binary}" "${workdir}/checksums.txt" "${binary}"
+install -m 0755 "${workdir}/${binary}" /usr/local/bin/wings
+state_set WINGS_VERSION "${wings_tag}"
+log "Wings release ${wings_tag}."
 
 log "Writing /etc/systemd/system/wings.service."
 cat >/etc/systemd/system/wings.service <<'EOF'

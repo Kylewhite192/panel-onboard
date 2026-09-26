@@ -109,7 +109,7 @@ state_load_choices() {
     WINGS_DOMAIN CERTBOT_EMAIL APP_URL ADMIN_EMAIL DOCKER_DIR DOCKER_UPSTREAM_IP; do
     if value="$(state_get "${key}")"; then
       printf -v "${key}" '%s' "${value}"
-      export "${key}"
+      export "${key?}"
     fi
   done
 }
